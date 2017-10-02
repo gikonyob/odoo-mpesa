@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<data>
+        <template id="assets" name="mpesa_payment assets" inherit_id="point_of_sale.assets">
+        	<xpath expr="//script[contains(@src,'models.js')]" position="replace">
+				<script type="text/javascript" src="/mpesa_payment/static/src/js/models.js"></script>
+			</xpath>
+			<xpath expr="//script[contains(@src,'screens.js')]" position="replace">
+				<script type="text/javascript" src="/mpesa_payment/static/src/js/screens.js"></script>
+			</xpath>
+			<xpath expr="//script[contains(@src,'chrome.js')]" position="replace">
+				<script type="text/javascript" src="/mpesa_payment/static/src/js/chrome.js"></script>
+			</xpath>
+			<xpath expr="//script[contains(@src,'main.js')]" position="replace">
+				<script type="text/javascript" src="/mpesa_payment/static/src/js/main.js"></script>
+			</xpath>
+			<xpath expr="." position="inside">
+                <script type="text/javascript" src="/mpesa_payment/static/src/js/toastr.min.js"></script>
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+            </xpath>
+        </template>
+    </data>
+</odoo>
