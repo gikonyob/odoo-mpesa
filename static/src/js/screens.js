@@ -1545,7 +1545,8 @@ var PaymentScreenWidget = ScreenWidget.extend({
     init: function(parent, options) {
         var self = this;
         this._super(parent, options);
-        this.payment_method_count = 0;
+        this.mpayment_method = 0;
+        this.account_no;
 
         this.pos.bind('change:selectedOrder',function(){
                 this.renderElement();
@@ -1732,14 +1733,14 @@ var PaymentScreenWidget = ScreenWidget.extend({
     click_paymentmethods: function(id) {
         var self = this;
         var cashregister = null;
-        var account_no = "";
+        var acc_no;
         var intervalVar;
         var paid_amount;
         for ( var i = 0; i < this.pos.cashregisters.length; i++ ) {
             if ( this.pos.cashregisters[i].journal_id[0] === id ){
                 cashregister = this.pos.cashregisters[i];
                 if(this.pos.cashregisters[i].journal.mpesa_payment == true){
-                    this.payment_method_count += 1;
+                    this.mpayment_method = 1;
                 }
                 break;
             }
@@ -1757,36 +1758,39 @@ var PaymentScreenWidget = ScreenWidget.extend({
         toastr.options.hideEasing = "linear";
         toastr.options.showMethod = "fadeIn";
         toastr.options.hideMethod = "fadeOut";
-        if(this.payment_method_count == 1){
-            var xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function() {
+        if(this.mpayment_method == 1){
+            acc_no = String(this.pos.get_order().uid).replace('-','').replace('-','');
+            if(this.account_no != acc_no){
+                this.account_no = acc_no;
+                toastr.success("Account Number", acc_no);
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                    }
+                };
+                xhttp.open("GET", "/web/mpesa/account_no?code=" + acc_no, true);
+                xhttp.send();
+            }
+            var xhtp = new XMLHttpRequest();
+            xhtp.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
-                    account_no = this.responseText;
-                    toastr.success("Account Number", account_no);
-                    var xhtp = new XMLHttpRequest();
-                    xhtp.onreadystatechange = function() {
-                        if (this.readyState == 4 && this.status == 200) {
-                            paid_amount = this.responseText;
-                            if (paid_amount != 'False'){
-                                clearInterval(intervalVar);
-                                var paid_amount_array = paid_amount.split('');
-                                var l = paid_amount_array.length;
-                                for(var i = 0; i < l; i++){
-                                    var key = paid_amount_array[i];
-                                    self.payment_input(key);
-                                }
-                            }
+                    paid_amount = this.responseText;
+                    if (paid_amount != 'False'){
+                        clearInterval(intervalVar);
+                        var paid_amount_array = paid_amount.split('');
+                        var l = paid_amount_array.length;
+                        for(var i = 0; i < l; i++){
+                            var key = paid_amount_array[i];
+                            self.payment_input(key);
                         }
-                    };
-                    intervalVar = setInterval(function(){
-                        xhtp.open("GET", "/web/mpesa/payment?account_no=" + account_no, true);
-                        xhtp.send();
-                    }, 1000);
+                    }
                 }
             };
-            xhttp.open("GET", "/web/mpesa/account_no", true);
-            xhttp.send();
-    }
+            intervalVar = setInterval(function(){
+                    xhtp.open("GET", "/web/mpesa/payment?account_no=" + self.account_no, true);
+                    xhtp.send();
+                    }, 1000);
+        }
     },
     render_paymentmethods: function() {
         var self = this;

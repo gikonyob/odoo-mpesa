@@ -13,6 +13,7 @@
         'views/point_of_sale_template.xml',
     ],
     'qweb': ['static/src/xml/pos.xml'],
+    'application': True,
     'installable': True,
     'auto_install': False,
 }

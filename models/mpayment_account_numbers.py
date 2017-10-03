@@ -12,3 +12,4 @@ class MpesaAccountNumbers(models.Model):
 	receive_date = fields.Date('Received timestamp', help='Datetime amount was recieved')
 	sender_name = fields.Char('Sender name', help='Name of sender')
 	status = fields.Boolean('Receipt status', help='If amount is recieved or not')
+	confirmed = fields.Boolean('POS confirmation', help='If amount is recieved in POS or not')
