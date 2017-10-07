@@ -2,7 +2,6 @@
 
 from odoo import api 
 from odoo import http
-from datetime import datetime
 from odoo.http import request
 
 
