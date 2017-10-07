@@ -637,7 +637,6 @@ var ProductCategoriesWidget = PosBaseWidget.extend({
                 clearTimeout(search_timeout);
 
                 var searchbox = this;
-
                 search_timeout = setTimeout(function(){
                     self.perform_search(self.category, searchbox.value, event.which === 13);
                 },70);
@@ -1546,6 +1545,7 @@ var PaymentScreenWidget = ScreenWidget.extend({
         var self = this;
         this._super(parent, options);
         this.mpayment_method = 0;
+        this.mpayment_type;
         this.account_no;
 
         this.pos.bind('change:selectedOrder',function(){
@@ -1562,51 +1562,7 @@ var PaymentScreenWidget = ScreenWidget.extend({
         // doing a back navigation. It also makes sure that keys that
         // do not generate a keypress in Chrom{e,ium} (eg. delete,
         // backspace, ...) get passed to the keypress handler.
-        this.keyboard_keydown_handler = function(event){
-            if (event.keyCode === 8 || event.keyCode === 46) { // Backspace and Delete
-                event.preventDefault();
-
-                // These do not generate keypress events in
-                // Chrom{e,ium}. Even if they did, we just called
-                // preventDefault which will cancel any keypress that
-                // would normally follow. So we call keyboard_handler
-                // explicitly with this keydown event.
-                self.keyboard_handler(event);
-            }
-        };
         
-        // This keyboard handler listens for keypress events. It is
-        // also called explicitly to handle some keydown events that
-        // do not generate keypress events.
-        this.keyboard_handler = function(event){
-            var key = '';
-
-            if (event.type === "keypress") {
-                if (event.keyCode === 13) { // Enter
-                    self.validate_order();
-                } else if ( event.keyCode === 190 || // Dot
-                            event.keyCode === 110 ||  // Decimal point (numpad)
-                            event.keyCode === 188 ||  // Comma
-                            event.keyCode === 46 ) {  // Numpad dot
-                    key = self.decimal_point;
-                } else if (event.keyCode >= 48 && event.keyCode <= 57) { // Numbers
-                    key = '' + (event.keyCode - 48);
-                } else if (event.keyCode === 45) { // Minus
-                    key = '-';
-                } else if (event.keyCode === 43) { // Plus
-                    key = '+';
-                }
-            } else { // keyup/keydown
-                if (event.keyCode === 46) { // Delete
-                    key = 'CLEAR';
-                } else if (event.keyCode === 8) { // Backspace
-                    key = 'BACKSPACE';
-                }
-            }
-
-            self.payment_input(key);
-            event.preventDefault();
-        };
 
         this.pos.bind('change:selectedClient', function() {
             self.customer_changed();
@@ -1736,11 +1692,24 @@ var PaymentScreenWidget = ScreenWidget.extend({
         var acc_no;
         var intervalVar;
         var paid_amount;
+        var search_form = document.createElement('form');
+        search_form.method = "GET";
+        search_form.id = "search-form";
+        search_form.style = "padding-left: 15px;";
+        search_form.innerHTML = "<input type='search' id='search' style='padding: 6px; width: 95%;' placeholder='Search Mobile Number...' />\
+        <div id='search_res' style='width: 95%;'></div>";
+        var parent_elem = document.getElementById('left-content');
+        var elem = document.getElementById('paymentmethods');
         for ( var i = 0; i < this.pos.cashregisters.length; i++ ) {
             if ( this.pos.cashregisters[i].journal_id[0] === id ){
                 cashregister = this.pos.cashregisters[i];
                 if(this.pos.cashregisters[i].journal.mpesa_payment == true){
                     this.mpayment_method = 1;
+                    if(this.pos.cashregisters[i].journal.mpesa_payment_type == 'paybill'){
+                        this.mpayment_type = 'paybill';
+                    }else if(this.pos.cashregisters[i].journal.mpesa_payment_type == 'till'){
+                        this.mpayment_type = 'till';
+                    }
                 }
                 break;
             }
@@ -1758,17 +1727,18 @@ var PaymentScreenWidget = ScreenWidget.extend({
         toastr.options.hideEasing = "linear";
         toastr.options.showMethod = "fadeIn";
         toastr.options.hideMethod = "fadeOut";
-        if(this.mpayment_method == 1){
+
+        if(this.mpayment_method == 1 && this.mpayment_type == 'paybill'){
             acc_no = String(this.pos.get_order().uid).replace('-','').replace('-','');
             if(this.account_no != acc_no){
                 this.account_no = acc_no;
                 toastr.success("Account Number", acc_no);
                 var xhttp = new XMLHttpRequest();
                 xhttp.onreadystatechange = function() {
-                    if (this.readyState == 4 && this.status == 200) {
+                    if (this.readyState == 4 && this.status == 200){
                     }
                 };
-                xhttp.open("GET", "/web/mpesa/account_no?code=" + acc_no, true);
+                xhttp.open("GET", "/web/mpesa/paybill/account_no?code=" + acc_no, true);
                 xhttp.send();
             }
             var xhtp = new XMLHttpRequest();
@@ -1787,9 +1757,55 @@ var PaymentScreenWidget = ScreenWidget.extend({
                 }
             };
             intervalVar = setInterval(function(){
-                    xhtp.open("GET", "/web/mpesa/payment?account_no=" + self.account_no, true);
+                    xhtp.open("GET", "/web/mpesa/paybill/payment?account_no=" + self.account_no, true);
                     xhtp.send();
                     }, 1000);
+        }else if(this.mpayment_method == 1 && this.mpayment_type == 'till'){
+            var search_elem = document.getElementById('search-form');
+            if(document.contains(search_elem) === false){
+                parent_elem.insertBefore(search_form, elem.nextSibling);
+                $('#search').keypress(
+                function(e){
+                    if(e.which == 13){
+                    e.preventDefault();
+                    var xmlhtp = new XMLHttpRequest();
+                    xmlhtp.onreadystatechange = function() {
+                        if (this.readyState == 4 && this.status == 200) {
+                            var payment_res = this.responseText;
+                            var d =document.getElementById('search_res');
+                            if(payment_res == 'False'){
+                                d.innerHTML = "<button style='padding: 6px; width: 100%; font-size: 19px; background-color: #6EC89B; color: #ffffff;'>No payment from this number</button>";
+                            }else{
+                                var payment_res_array = payment_res.split('|');
+                                d.innerHTML = "<button id='res_list' type='button' title = '+" + payment_res_array[1] + "' name='" + payment_res_array[1] + "'style='padding: 6px; width: 100%; font-size: 19px; background-color: #6EC89B; color: #ffffff;'><span style='width:70%'>" + payment_res_array[0] + "</span><span style='width: 30%; float: right;'>KES " + payment_res_array[2] +"<span></button>"; 
+                                var res_list = document.getElementById('res_list');
+                                res_list.addEventListener("click",
+                                    function(){
+                                        var xmlhtp = new XMLHttpRequest();
+                                        xmlhtp.onreadystatechange = function() {
+                                            if (this.readyState == 4 && this.status == 200) {
+                                                var confirmed_amount = this.responseText;
+                                                if(confirmed_amount != 'False'){
+                                                    var confirmed_amount_array = confirmed_amount.split('');
+                                                    var l = confirmed_amount_array.length;
+                                                    for(var i = 0; i < l; i++){
+                                                        var key = confirmed_amount_array[i];
+                                                        self.payment_input(key);
+                                                    }
+                                                }
+                                            }
+                                        };
+                                        xmlhtp.open("GET", "/web/mpesa/till/payment/confirm?msisdn=" + this.name, true);
+                                        xmlhtp.send();
+                                });
+                            }
+                        }
+                    };
+                    xmlhtp.open("GET", "/web/mpesa/till/payment?msisdn=" + String(this.value).replace('+', ''), true);
+                    xmlhtp.send();
+                    }
+                });
+            }
         }
     },
     render_paymentmethods: function() {
@@ -2110,6 +2126,9 @@ define_action_button({
         return this.pos.fiscal_positions.length > 0;
     },
 });
+function getPayments(value){
+    console.log(value);
+}
 
 return {
     ReceiptScreenWidget: ReceiptScreenWidget,

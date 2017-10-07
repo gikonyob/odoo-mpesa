@@ -14,7 +14,7 @@
                 </div>
             </div>
 
-            <div class="pos-content">
+            <div class="pos-content" id="pos-content">
 
                 <div class='window'>
                     <div class='subwindow'>
@@ -611,9 +611,9 @@
                         <i class='fa fa-angle-double-right'></i>
                     </span>
                 </div>
-                <div class='left-content pc40 touch-scrollable scrollable-y'>
+                <div class='left-content pc40 touch-scrollable scrollable-y' id="left-content">
 
-                    <div class='paymentmethods-container'>
+                    <div class='paymentmethods-container' id="paymentmethods">
                     </div>
 
                 </div>
@@ -1287,7 +1287,7 @@
 
 
     <t t-name="DebugWidget">
-        <div class="debug-widget oe_hidden">
+        <div class="debug-widget oe_hidden" id="debug">
             <h1>Debug Window</h1>
             <div class="toggle"><i class='fa fa-times' /></div>
             <div class="content">

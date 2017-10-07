@@ -7,6 +7,7 @@
             <field name="arch" type="xml">
                 <xpath expr="//page[last()]/group" position="inside">
                     <field name="mpesa_payment" attrs="{'invisible': [('type','!=','cash')]}"/>
+                    <field name="mpesa_payment_type" attrs="{'invisible': [('mpesa_payment','!=', True)]}"/>
                 </xpath>
             </field>
         </record>

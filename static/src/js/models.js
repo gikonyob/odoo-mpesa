@@ -330,7 +330,7 @@ exports.PosModel = Backbone.Model.extend({
         },
     },{
         model:  'account.journal',
-        fields: ['type', 'sequence', 'mpesa_payment'],
+        fields: ['type', 'sequence', 'mpesa_payment', 'mpesa_payment_type'],
         domain: function(self,tmp){ return [['id','in',tmp.journals]]; },
         loaded: function(self, journals){
             var i;
