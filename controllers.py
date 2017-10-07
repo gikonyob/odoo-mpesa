@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import string
-import random
 from odoo import api 
 from odoo import http
 from datetime import datetime
