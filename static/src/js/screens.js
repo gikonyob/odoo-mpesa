@@ -1730,36 +1730,72 @@ var PaymentScreenWidget = ScreenWidget.extend({
 
         if(this.mpayment_method == 1 && this.mpayment_type == 'paybill'){
             acc_no = String(this.pos.get_order().uid).replace('-','').replace('-','');
-            if(this.account_no != acc_no){
-                this.account_no = acc_no;
-                toastr.success("Account Number", acc_no);
-                var xhttp = new XMLHttpRequest();
-                xhttp.onreadystatechange = function() {
-                    if (this.readyState == 4 && this.status == 200){
-                    }
-                };
-                xhttp.open("GET", "/web/mpesa/paybill/account_no?code=" + acc_no, true);
-                xhttp.send();
-            }
-            var xhtp = new XMLHttpRequest();
-            xhtp.onreadystatechange = function() {
-                if (this.readyState == 4 && this.status == 200) {
-                    paid_amount = this.responseText;
-                    if (paid_amount != 'False'){
-                        clearInterval(intervalVar);
-                        var paid_amount_array = paid_amount.split('');
-                        var l = paid_amount_array.length;
-                        for(var i = 0; i < l; i++){
-                            var key = paid_amount_array[i];
-                            self.payment_input(key);
+            var search_elem = document.getElementById('search-form');
+            if(document.contains(search_elem) === false){
+                parent_elem.insertBefore(search_form, elem.nextSibling);
+                $('#search').keypress(
+                function(e){
+                    if(e.which == 13){
+                    e.preventDefault();
+                    var xmlhtp = new XMLHttpRequest();
+                    xmlhtp.onreadystatechange = function() {
+                        if (this.readyState == 4 && this.status == 200) {
+                            var payment_res = this.responseText;
+                            var d =document.getElementById('search_res');
+                            if(payment_res == 'False'){
+                                d.innerHTML = "<button style='padding: 6px; width: 100%; font-size: 19px; background-color: #6EC89B; color: #ffffff;'>No payment from this number</button>";
+                            }else{
+                                var payment_res_array = payment_res.split('|');
+                                d.innerHTML = "<button id='res_list' type='button' title = 'Click to Confirm' name='" + payment_res_array[1] + "'style='padding: 6px; width: 100%; font-size: 19px; background-color: #6EC89B; color: #ffffff;'><span style='width:70%'>" + payment_res_array[0] + "</span><span style='width: 30%; float: right;'>KES " + payment_res_array[2] +"<span></button>"; 
+                                var res_list = document.getElementById('res_list');
+                                res_list.addEventListener("click",
+                                    function(){
+                                        var xmltp = new XMLHttpRequest();
+                                        xmltp.onreadystatechange = function() {
+                                            if (this.readyState == 4 && this.status == 200) {
+                                                var confirmed_amount = this.responseText;
+                                            }
+                                        };
+                                        xmltp.open("GET", "/web/mpesa/paybill/payment/confirm?msisdn=" + this.name, true);
+                                        xmltp.send();
+                                });
+                            }
                         }
+                    };
+                    xmlhtp.open("GET", "/web/mpesa/paybill/payment?msisdn=" + String(this.value).replace('+', ''), true);
+                    xmlhtp.send();
                     }
-                }
-            };
-            intervalVar = setInterval(function(){
-                    xhtp.open("GET", "/web/mpesa/paybill/payment?account_no=" + self.account_no, true);
-                    xhtp.send();
-                    }, 1000);
+                });
+            	if(this.account_no != acc_no){
+                	this.account_no = acc_no;
+                	toastr.success("Account Number", acc_no);
+                	var xhttp = new XMLHttpRequest();
+                	xhttp.onreadystatechange = function() {
+                    	if (this.readyState == 4 && this.status == 200){
+                    	}
+                	};
+                	xhttp.open("GET", "/web/mpesa/paybill/account_no?code=" + acc_no, true);
+                	xhttp.send();
+            	}
+            	var xhtp = new XMLHttpRequest();
+            	xhtp.onreadystatechange = function() {
+            	    if (this.readyState == 4 && this.status == 200) {
+                	    paid_amount = this.responseText;
+                    	if (paid_amount != 'False'){
+                        	var paid_amount_array = paid_amount.split('');
+                        	var l = paid_amount_array.length;
+                        	for(var i = 0; i < l; i++){
+                            	var key = paid_amount_array[i];
+                        	    self.payment_input(key);
+                        	}
+                    	}
+                	}
+            	};
+            	intervalVar = setInterval(function(){
+                    	xhtp.open("GET", "/web/mpesa/paybill/payment?account_no=" + self.account_no, true);
+                    	xhtp.send();
+                    	}, 1000);
+            }
         }else if(this.mpayment_method == 1 && this.mpayment_type == 'till'){
             var search_elem = document.getElementById('search-form');
             if(document.contains(search_elem) === false){
@@ -1781,8 +1817,8 @@ var PaymentScreenWidget = ScreenWidget.extend({
                                 var res_list = document.getElementById('res_list');
                                 res_list.addEventListener("click",
                                     function(){
-                                        var xmlhtp = new XMLHttpRequest();
-                                        xmlhtp.onreadystatechange = function() {
+                                        var xmltp = new XMLHttpRequest();
+                                        xmltp.onreadystatechange = function() {
                                             if (this.readyState == 4 && this.status == 200) {
                                                 var confirmed_amount = this.responseText;
                                                 if(confirmed_amount != 'False'){
@@ -1795,8 +1831,8 @@ var PaymentScreenWidget = ScreenWidget.extend({
                                                 }
                                             }
                                         };
-                                        xmlhtp.open("GET", "/web/mpesa/till/payment/confirm?msisdn=" + this.name, true);
-                                        xmlhtp.send();
+                                        xmltp.open("GET", "/web/mpesa/till/payment/confirm?msisdn=" + this.name, true);
+                                        xmltp.send();
                                 });
                             }
                         }

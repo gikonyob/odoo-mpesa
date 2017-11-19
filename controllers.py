@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from odoo import api 
 from odoo import http
 from odoo.http import request
@@ -22,20 +21,39 @@ class MPaymentController(http.Controller):
 		msisdn = args.get('msisdn', False)
 		receive_date = args.get('datetime', False)
 		sender_name = args.get('senderName', False)
-		check_record = mpayment_obj.search([('account_no', '=', account_no)])
-		count_record = mpayment_obj.search_count([('account_no', '=', account_no)])
-		if count_record == 1:
-			check_record.write({'amount': amount, 'msisdn': msisdn, 'receive_date': receive_date, 'sender_name': sender_name, 'status': 'True'})
-		else:
-			check_record.create({'account_no': account_no, 'amount': amount, 'msisdn': msisdn, 'receive_date': receive_date, 'sender_name': sender_name, 'status': 'True'})
-		return {'status': "OK"}
+		check_record = mpayment_obj.search([])
+		check_record.create({'account_no': account_no, 'amount': amount, 'msisdn': msisdn, 'receive_date': receive_date, 'sender_name': sender_name, 'status': 'True'})
+		return {'status' : "OK"}
 
 	@http.route('/web/mpesa/paybill/payment', auth='public')
 	def check_paybill_payment_status(self, **args):
 		mpayment_obj = request.env['mpayment.account_paybill'].sudo()
-		account_no = args[u'account_no']
-		payment_record = mpayment_obj.search([('account_no', '=', account_no)], limit=1, order='id desc')
-		if str(payment_record.status) == 'True' and str(payment_record.confirmed) == 'False':
+		acc = u'account_no'
+		msi = u'msisdn'
+		if acc in args.keys():
+			account_no = args[u'account_no']
+			payment_record = mpayment_obj.search([('account_no', '=', account_no)], limit=1, order='id desc')
+			if str(payment_record.status) == 'True' and str(payment_record.confirmed) == 'False':
+				payment_record.write({'confirmed': True})
+				return str(payment_record.amount)
+			else:
+				return 'False'
+		elif msi in args.keys():
+			msisdn = args[u'msisdn']
+			payment_record = mpayment_obj.search([('msisdn', '=', msisdn)], limit=1, order='id desc')
+			if str(payment_record.status) == 'True' and str(payment_record.confirmed) == 'False':
+				payment_record.write({'confirmed': True})
+				return str(payment_record.sender_name) + "|" + str(msisdn) + "|" + str(payment_record.amount)
+			else:
+				return 'False'
+
+	@http.route('/web/mpesa/paybill/payment/confirm', auth='public')
+	def paybill_payment_confirmation(self, **args):
+		mpayment_obj = request.env['mpayment.account_paybill'].sudo()
+		msisdn = args[u'msisdn']
+		payment_record = mpayment_obj.search([('msisdn', '=', msisdn), ('confirmed', '=', False)], limit=1, order='receive_date desc')
+		payment_record_count = mpayment_obj.search_count([('msisdn', '=', msisdn), ('confirmed', '=', False)])
+		if payment_record_count > 0:
 			payment_record.write({'confirmed': True})
 			return str(payment_record.amount)
 		else:
@@ -48,7 +66,8 @@ class MPaymentController(http.Controller):
 		msisdn = args.get('msisdn', False)
 		receive_date = args.get('datetime', False)
 		sender_name = args.get('senderName', False)
-		mpayment_obj.create({'amount': amount, 'msisdn': msisdn, 'receive_date': receive_date, 'sender_name': sender_name})
+		payment_record = mpayment_obj.search([])
+		payment_record.create({'amount': amount, 'msisdn': msisdn, 'receive_date': receive_date, 'sender_name': sender_name})
 		return {'status': "OK"}
 
 	@http.route('/web/mpesa/till/payment', auth='public')
@@ -64,7 +83,6 @@ class MPaymentController(http.Controller):
 
 	@http.route('/web/mpesa/till/payment/confirm', auth='public')
 	def till_payment_confirmation(self, **args):
-		amount = "False"
 		mpayment_obj = request.env['mpayment.account_till'].sudo()
 		msisdn = args[u'msisdn']
 		payment_record = mpayment_obj.search([('msisdn', '=', msisdn), ('confirmed', '=', False)], limit=1, order='receive_date desc')
